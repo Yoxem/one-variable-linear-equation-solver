@@ -10,15 +10,15 @@ Dependencies
 
 Compile
 ----------
-typing ``make`` in the folder of the repo.
+Type ``make`` after entering the folder of the repo.
 
 Execute
 ----------
-execute it with the command:
+Execute it with the command:
 
 ``./interp``
 
-after showing the introdution, type the formula (eg. ``2*x+5``), then press enter to solve it. For example:
+After showing the introdution, type the formula (eg. ``2*x+5``), then press enter to solve it. For example:
 
     A program to solve f(x) = 0 such that f(x) is a 1-var linear function.
     Please Enter a 1-var linear function:  2*x+5           
