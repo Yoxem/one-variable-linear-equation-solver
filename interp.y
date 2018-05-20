@@ -1,12 +1,16 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-void yyerror(const char* msg) {}
+#include <math.h>
+#include <string.h>
+
+void yyerror(const char* msg);
 extern FILE* yyin;
+extern int yylex();
 
 typedef enum
 {null, opera, var, val} NodeType;
-
+ typedef enum {false, true} bool;
 typedef struct Node {
 float val;
 char * name; // val_name
@@ -60,21 +64,23 @@ void run_through_tree (Node *node){
     }
 
 }
-
+bool escape_recursion = false;
 float eval_node(float var_val, Node * node){
+    
     switch ((*node).node_type){
         case var:
-            if (var_name == ""){
-                var_name = node->name;
-                printf("%s",node->name);
+		  if (strcmp(var_name,"")==0){
+			    var_name = node->name;
                 return var_val;
             }
-            else if (var_name == node->name){
+            else if (strcmp(var_name,node->name)==0){
                 return var_val;
             }
             else{
                 printf("Error: Too many variable, eg. %s, %s.\n",
                     var_name,node->name);
+				escape_recursion = true;
+				return NAN;
                 break;
             }
 
@@ -83,26 +89,85 @@ float eval_node(float var_val, Node * node){
         case val:
             return (*node).val;
             break;
-        case opera:
-            if (node->opr == "+"){
-                    return (eval_node(var_val,node->left) + eval_node(var_val,node->right));
+	    case opera:{
+		    float left_num, right_num;
+
+			left_num = eval_node(var_val,node->left);
+			if (escape_recursion){return NAN; break;}
+
+			right_num = eval_node(var_val,node->right);
+			if (escape_recursion){return NAN; break;}
+
+			if (node->opr == "+"){
+			  return left_num + right_num;
             }
             else if (node->opr == "-"){
-                    return (eval_node(var_val,node->left) - eval_node(var_val,node->right));
+                    return left_num - right_num;
             }
             else if (node->opr == "*"){
-                    return (eval_node(var_val,node->left) * eval_node(var_val,node->right));
+                    return left_num * right_num;
             }
             else if (node->opr == "/"){
-                    return (eval_node(var_val,node->left) / eval_node(var_val,node->right));
+                    return left_num / right_num;
             }
-            break;
+            break;}
+		  
     }
 }
 
 Node * main_node;
+float solve(Node * m_node){
+  escape_recursion = false;
+  var_name = "";
+  float x0 = 0.0;
+  float y0 = eval_node(x0,m_node);
+  float x1 = 1.0;
+  float y1 = eval_node(x1,m_node);
+  float x2 = 10.0;
+  float y2 = eval_node(x2,m_node);
 
+  if (isnan(y0) || isnan(y1) || isnan(y2)){
+	return NAN;
+  }
+  else if(strcmp(var_name,"")==0){
+	var_name = "[var]";
+	
+	if (y0 == 0.0){
+	  printf("%s can be any numbers; the following is just a solution.",
+			 var_name);
+	  return 0.0;
+	}
+	else{
+	  return NAN;
+	}
+  }
+  else{
 
+	float slope1 = (y1-y0) / (x1-x0);
+	float slope2 = (y2-y0) / (x2-x0);
+
+	if (slope1 == slope2){
+	  if (slope1 == 0.0){
+		if (y0 == 0){
+		  printf("%s can be any numbers; the following is just a solution.",
+			 var_name);
+		  return 0.0;		  
+		}
+		else{
+		  return NAN;
+		}
+	  }
+	  else{
+		float ans = -y0 / slope1;
+		return ans;
+	  }
+	}
+	else{
+	  printf("Error: the formula is not linear.\n");
+	  return NAN;
+	}
+  }
+}
 %}
 
 %union{
@@ -126,15 +191,23 @@ Node * main_node;
 
 %%
 
-S    : S E T_NEWLINE { main_node = $2;run_through_tree(main_node); /*printf("TOTAL_VALUE: %f",eval_node(5.0,main_node));*/}
+S    : S E T_NEWLINE { main_node = $2;
+                       printf("ANSWER: %s = %f",var_name,solve(main_node));}
      | {}
      ;
 
-E    :  E T_ADD E {Node * op_node = (Node *) malloc(sizeof(Node));*op_node = create_op_node("+"); connect_node(op_node,$1,$3);$$ = op_node;}
-     |  E T_SUB E {Node * op_node = (Node *) malloc(sizeof(Node));*op_node = create_op_node("-"); connect_node(op_node,$1,$3);$$ = op_node;}
-     |  E T_MUL E {Node * op_node 
-= (Node *) malloc(sizeof(Node));*op_node = create_op_node("*"); connect_node(op_node,$1,$3);$$ = op_node;}
-     |  E T_DIV E {Node * op_node = (Node *) malloc(sizeof(Node));*op_node = create_op_node("/"); connect_node(op_node,$1,$3);$$ = op_node;} 
+E    :  E T_ADD E {Node * op_node = (Node *) malloc(sizeof(Node));
+                   *op_node = create_op_node("+");
+				   connect_node(op_node,$1,$3);$$ = op_node;}
+     |  E T_SUB E {Node * op_node = (Node *) malloc(sizeof(Node));
+                   *op_node = create_op_node("-");
+				    connect_node(op_node,$1,$3);$$ = op_node;}
+     |  E T_MUL E {Node * op_node = (Node *) malloc(sizeof(Node));
+                   *op_node = create_op_node("*");
+				   connect_node(op_node,$1,$3);$$ = op_node;}
+     |  E T_DIV E {Node * op_node = (Node *) malloc(sizeof(Node));
+                   *op_node = create_op_node("/");
+				   connect_node(op_node,$1,$3);$$ = op_node;} 
      | T_SUB E %prec NEG {
                         Node * op_node = (Node *) malloc(sizeof(Node));
                         Node * zero_node = (Node *) malloc(sizeof(Node));
@@ -142,8 +215,12 @@ E    :  E T_ADD E {Node * op_node = (Node *) malloc(sizeof(Node));*op_node = cre
                         * op_node = create_op_node("-");
                         connect_node(op_node,zero_node,$2);
                         $$ = op_node;}
-     | T_NUM {Node * val_node = (Node *) malloc(sizeof(Node));* val_node = create_val_node($1); $$ = val_node;}
-     | T_VAR {Node * var_node = (Node *) malloc(sizeof(Node));* var_node = create_var_node($1); $$ = var_node;}
+     | T_NUM {Node * val_node = (Node *) malloc(sizeof(Node));
+              * val_node = create_val_node($1);
+			  $$ = val_node;}
+     | T_VAR {Node * var_node = (Node *) malloc(sizeof(Node));
+              * var_node = create_var_node($1);
+			  $$ = var_node;}
      | T_LPATH E T_RPATH {$$ = $2;}
      ;
 
@@ -152,9 +229,18 @@ E    :  E T_ADD E {Node * op_node = (Node *) malloc(sizeof(Node));*op_node = cre
 int main(){
   yyin = stdin;
   do{
+	  printf(
+	"A program to solve f(x) = 0 such that f(x) is a 1-var linear function.\n");
+	  printf("Please Enter a 1-var linear function: ");
 	yyparse();
     
   }while(!feof(yyin));
 
   return 0;
+}
+
+void yyerror (const char *msg)
+{
+
+  fprintf (stderr, "%s\n", msg);
 }

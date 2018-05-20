@@ -22,7 +22,6 @@ var     ([_]|{alpha})([_]|{alpha}|{dig})*
 {ws}     {yycharno = yycharno + yyleng;}
 {var}    {yylval.strVal = strdup(yytext);
           yycharno = yycharno + yyleng;
-          printf("yyval.strVal = %s",yylval.strVal);
           return T_VAR;}
 {number} {yylval.floatVal = atof(yytext);
           yycharno = yycharno + yyleng;
