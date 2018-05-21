@@ -21,5 +21,5 @@ Execute it with the command:
 After showing the introdution, type the formula (eg. ``2*x+5``), then press enter to solve it. For example:
 
     A program to solve f(x) = 0 such that f(x) is a 1-var linear function.
-    Please Enter a 1-var linear function:  2*x+5           
+    Please enter a 1-var linear function:  2*x+5           
     ANSWER: x = -2.500000
