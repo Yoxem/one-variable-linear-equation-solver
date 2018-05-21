@@ -231,7 +231,7 @@ int main(){
   do{
 	  printf(
 	"A program to solve f(x) = 0 such that f(x) is a 1-var linear function.\n");
-	  printf("Please Enter a 1-var linear function: ");
+	  printf("Please enter a 1-var linear function: ");
 	yyparse();
     
   }while(!feof(yyin));
